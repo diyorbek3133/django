@@ -29,7 +29,11 @@ ALLOWED_HOSTS = ['*']
 LOGIN_URL = 'login'
 LOGIN_REDIRECT_URL = 'home'
 
-
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    )
+}
 
 # Application definition
 
