@@ -4,6 +4,7 @@ from django.contrib.auth import authenticate, login as auth_login,logout
 from django.contrib.auth.decorators import login_required,user_passes_test
 from myapp.models import Lugat
 from django.contrib.auth.models import User
+from django.http import JsonResponse
 
 def register(request):
     if request.method == "POST":
@@ -59,4 +60,11 @@ def input(request):
 def get_users(request):
     users= User.objects.all()
     return render(request,'users.html',{"users": users})
+
+@login_required
+def delete_word(request,id):
+    if request.method=="POST":
+       Lugat.objects.filter(id=id).delete()
+       return JsonResponse({"success": True})
+
 

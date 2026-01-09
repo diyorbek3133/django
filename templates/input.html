@@ -21,12 +21,28 @@ input { padding: 10px; border-radius: 12px; border: 1px solid #d1d5db; width: 20
 input:focus { border-color: #4f46e5; box-shadow: 0 0 0 0.2rem rgba(79, 70, 229, 0.25); outline: none; }
 .add-btn { padding: 10px 20px; border: none; background: linear-gradient(90deg, #4f46e5, #6366f1); color: white; border-radius: 50px; font-weight: 600; cursor: pointer; transition: 0.3s; }
 .add-btn:hover { background: linear-gradient(90deg, #4338ca, #4f46e5); }
+
+.delete-btn {
+    background-color: #e74c3c;
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 20px;
+    cursor: pointer;
+    font-weight: bold;
+}
+.delete-btn:hover { background-color: #c0392b; }
+
 table { width: 80%; margin: 0 auto; border-collapse: collapse; background-color: white; border-radius: 12px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
 th, td { padding: 12px; border-bottom: 1px solid #ddd; text-align: left; }
 th { background-color: #4f46e5; color: white; }
 tr:nth-child(even) { background-color: #f2f6fc; }
 tr:hover { background-color: #e8f0fe; }
-@media(max-width: 700px) { table, .input-container { width: 100%; } input { width: 100%; } }
+
+@media(max-width: 700px) {
+    table, .input-container { width: 100%; }
+    input { width: 100%; }
+}
 </style>
 </head>
 <body>
@@ -56,17 +72,25 @@ tr:hover { background-color: #e8f0fe; }
             <th>Word</th>
             <th>Definition</th>
             <th>Meaning</th>
+            <th>Action</th>
         </tr>
     </thead>
     <tbody id="table-body">
         {% for w in words %}
-        <tr>
+        <tr id="row-{{ w.id }}">
             <td>{{ w.word }}</td>
             <td>{{ w.definition }}</td>
             <td>{{ w.meaning }}</td>
+            <td>
+                <button class="delete-btn" onclick="deleteWord({{ w.id }})">
+                    Delete
+                </button>
+            </td>
         </tr>
         {% empty %}
-        <tr><td colspan="3" style="text-align:center;">No words yet.</td></tr>
+        <tr>
+            <td colspan="4" style="text-align:center;">No words yet.</td>
+        </tr>
         {% endfor %}
     </tbody>
 </table>
@@ -93,53 +117,63 @@ const csrftoken = getCookie("csrftoken");
 
 // Add word
 async function addWord() {
-    const wordInput = document.getElementById("word");
-    const definitionInput = document.getElementById("definition");
-    const meaningInput = document.getElementById("meaning");
-
-    const word = wordInput.value.trim();
-    const definition = definitionInput.value.trim();
-    const meaning = meaningInput.value.trim();
+    const word = document.getElementById("word").value.trim();
+    const definition = document.getElementById("definition").value.trim();
+    const meaning = document.getElementById("meaning").value.trim();
 
     if (!word || !definition || !meaning) {
         alert("All fields are required!");
         return;
     }
 
-    try {
-        const response = await fetch(API_URL, {
-            method: "POST",
-            headers: { "Content-Type": "application/json", "X-CSRFToken": csrftoken },
-            body: JSON.stringify({ word, definition, meaning })
-        });
+    const response = await fetch(API_URL, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "X-CSRFToken": csrftoken
+        },
+        body: JSON.stringify({ word, definition, meaning })
+    });
 
-        if (!response.ok) {
-            const error = await response.json();
-            alert("Error: " + (error.message || JSON.stringify(error)));
-            return;
-        }
+    if (!response.ok) {
+        alert("Error adding word");
+        return;
+    }
 
-        const tbody = document.getElementById("table-body");
+    const data = await response.json();
 
-        // Remove "No words yet." row if it exists
-        const emptyRow = tbody.querySelector('tr td[colspan="3"]');
-        if (emptyRow) emptyRow.parentElement.remove();
+    const tbody = document.getElementById("table-body");
+    const emptyRow = tbody.querySelector('td[colspan="4"]');
+    if (emptyRow) emptyRow.parentElement.remove();
 
-        // Add new row
-        const newRow = document.createElement("tr");
-        newRow.innerHTML = `<td>${word}</td><td>${definition}</td><td>${meaning}</td>`;
-        tbody.appendChild(newRow);
+    const row = document.createElement("tr");
+    row.id = `row-${data.id}`;
+    row.innerHTML = `
+        <td>${data.word}</td>
+        <td>${data.definition}</td>
+        <td>${data.meaning}</td>
+        <td><button class="delete-btn" onclick="deleteWord(${data.id})">Delete</button></td>
+    `;
+    tbody.appendChild(row);
 
-        // Clear inputs
-        wordInput.value = "";
-        definitionInput.value = "";
-        meaningInput.value = "";
+    document.getElementById("word").value = "";
+    document.getElementById("definition").value = "";
+    document.getElementById("meaning").value = "";
+}
 
-        wordInput.focus();
+// Delete word
+async function deleteWord(id) {
+    if (!confirm("Delete this word?")) return;
 
-    } catch (err) {
-        console.error("Add word error:", err);
-        alert("An error occurred. Check console.");
+    const response = await fetch(`/delete-word/${id}/`, {
+        method: "POST",
+        headers: { "X-CSRFToken": csrftoken }
+    });
+
+    if (response.ok) {
+        document.getElementById(`row-${id}`).remove();
+    } else {
+        alert("Delete failed");
     }
 }
 </script>

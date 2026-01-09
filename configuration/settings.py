@@ -30,10 +30,12 @@ LOGIN_URL = 'login'
 LOGIN_REDIRECT_URL = 'home'
 
 REST_FRAMEWORK = {
-    'DEFAULT_AUTHENTICATION_CLASSES': (
-        'rest_framework_simplejwt.authentication.JWTAuthentication',
-    )
+    "DEFAULT_AUTHENTICATION_CLASSES": (
+        "rest_framework_simplejwt.authentication.JWTAuthentication",
+        "rest_framework.authentication.SessionAuthentication",
+    ),
 }
+
 
 # Application definition
 
@@ -47,6 +49,7 @@ INSTALLED_APPS = [
     "myapp",
     "api",
     "rest_framework",
+    "rest_framework_simplejwt",
 ]
 
 MIDDLEWARE = [
